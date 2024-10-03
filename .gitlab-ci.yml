@@ -1,0 +1,50 @@
+stages:
+  - build
+  - scan
+  - test
+  - push
+
+variables:
+  IMAGE_NAME: "chancellor/flask-app"
+
+before_script:
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHORT_SHA .
+  tags:
+    - docker
+
+scan:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+
+test:
+  stage: test
+  image: "selenium/standalone-chrome"
+  services:
+    - name: selenium/standalone-chrome
+  script:
+    - apt-get update
+    - apt-get install -y python3 python3-pip
+    - pip3 install selenium
+    - python3 seleniumTest.py
+
+push:
+  stage: push
+  script:
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+  tags:
+    - docker
+
+workflow:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - Dockerfile
