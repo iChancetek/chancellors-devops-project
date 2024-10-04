@@ -30,8 +30,8 @@ stages:
           - task: Docker@2
             displayName: 'Log in to DockerHub'
             inputs:
-              command: 'login'
               containerRegistry: 'DockerHubRegistry'
+              command: 'login'
 
   - stage: ScanImage
     displayName: 'Scan Docker Image with Trivy'
@@ -41,8 +41,8 @@ stages:
         displayName: 'Run Trivy Image Scan'
         steps:
           - script: |
-              docker pull $(DOCKER_USERNAME)/chancetek_devops:latest
-              trivy image $(DOCKER_USERNAME)/chancetek_devops:latest
+              docker pull $(DOCKER_USERNAME)/chancetek_devops
+              trivy image $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Docker Scan with Trivy'
 
   - stage: TestApp
