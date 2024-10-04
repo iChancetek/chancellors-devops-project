@@ -1,0 +1,73 @@
+trigger:
+  branches:
+    include:
+      - main
+      
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  DOCKER_USERNAME: $(dockerUsername)
+  DOCKER_PASSWORD: $(dockerPassword)
+
+stages:
+  - stage: BuildDocker
+    displayName: 'Build Docker Image'
+    jobs:
+      - job: Build
+        displayName: 'Docker Build and Push'
+        steps:
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'DockerHubRegistry'
+              repository: '$(DOCKER_USERNAME)/chancetek_devops'
+              command: 'buildAndPush'
+              Dockerfile: '**/Dockerfile'
+              tags: |
+                latest
+                $(Build.BuildId)
+          - task: Docker@2
+            displayName: 'Log in to DockerHub'
+            inputs:
+              command: 'login'
+              containerRegistry: 'DockerHubRegistry'
+
+  - stage: ScanImage
+    displayName: 'Scan Docker Image with Trivy'
+    dependsOn: BuildDocker
+    jobs:
+      - job: Scan
+        displayName: 'Run Trivy Image Scan'
+        steps:
+          - script: |
+              docker pull $(DOCKER_USERNAME)/chancetek_devops:latest
+              trivy image $(DOCKER_USERNAME)/chancetek_devops:latest
+            displayName: 'Docker Scan with Trivy'
+
+  - stage: TestApp
+    displayName: 'Run Selenium Tests'
+    dependsOn: ScanImage
+    jobs:
+      - job: Test
+        displayName: 'Run Selenium Tests'
+        steps:
+          - script: |
+              # Here you would put the command to start your app or run Selenium tests
+              python -m pytest tests/
+            displayName: 'Run Selenium tests'
+
+  - stage: PushImage
+    displayName: 'Push Docker Image to DockerHub'
+    dependsOn: TestApp
+    jobs:
+      - job: Push
+        displayName: 'Push Docker Image'
+        steps:
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'DockerHubRegistry'
+              repository: '$(DOCKER_USERNAME)/chancetek_devops'
+              command: 'push'
+              tags: |
+                latest
