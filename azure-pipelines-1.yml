@@ -22,7 +22,7 @@ stages:
             inputs:
               containerRegistry: 'DockerHubRegistry'
               repository: '$(DOCKER_USERNAME)/chancetek_devops'
-              command: 'buildAndPush'
+              command: 'build'
               Dockerfile: '**/Dockerfile'
               tags: |
                 latest
@@ -69,5 +69,4 @@ stages:
               containerRegistry: 'DockerHubRegistry'
               repository: '$(DOCKER_USERNAME)/chancetek_devops'
               command: 'push'
-              tags: |
-                latest
+              tags: 'latest'
