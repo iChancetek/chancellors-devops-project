@@ -8,8 +8,8 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  DOCKER_USERNAME: $(dockerUsername)
-  DOCKER_PASSWORD: $(dockerPassword)
+  DOCKER_USERNAME: $(Docker_USERNAME)
+  DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
 stages:
   - stage: BuildDocker
