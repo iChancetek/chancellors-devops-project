@@ -7,9 +7,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  DOCKER_USERNAME: $(DOCKER_USERNAME)
-  DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
 
 stages:
   - stage: BuildDocker
@@ -21,7 +19,7 @@ stages:
           - task: Docker@2
             inputs:
               containerRegistry: 'DockerHubRegistry'
-              repository: '$(DOCKER_USERNAME)/chancetek_devops'
+              repository: 'ichancetek/chancetek_devops'
               command: 'build'
               Dockerfile: '**/Dockerfile'
               tags: |
@@ -41,8 +39,8 @@ stages:
         displayName: 'Run Trivy Image Scan'
         steps:
           - script: |
-              docker pull $(DOCKER_USERNAME)/chancetek_devops
-              trivy image $(DOCKER_USERNAME)/chancetek_devops
+              docker pull ichancetek/chancetek_devops
+              trivy image ichancetek)/chancetek_devops
             displayName: 'Docker Scan with Trivy'
 
   - stage: TestApp
@@ -67,6 +65,6 @@ stages:
           - task: Docker@2
             inputs:
               containerRegistry: 'DockerHubRegistry'
-              repository: '$(DOCKER_USERNAME)/chancetek_devops'
+              repository: 'ichancetek/chancetek_devops'
               command: 'push'
               tags: 'latest'
