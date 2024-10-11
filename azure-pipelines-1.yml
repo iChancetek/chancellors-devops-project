@@ -2,12 +2,13 @@ trigger:
   branches:
     include:
       - main
-      
 
 pool:
   vmImage: 'ubuntu-latest'
 
-
+variables:
+  DOCKER_USERNAME: $(DOCKER_USERNAME)  # DockerHub username stored in Variables section
+  DOCKER_PASSWORD: $(DOCKER_PASSWORD)  # DockerHub password stored as secret
 
 stages:
   - stage: BuildDocker
@@ -19,12 +20,13 @@ stages:
           - task: Docker@2
             inputs:
               containerRegistry: 'DockerHubRegistry'
-              repository: 'ichancetek/chancetek_devops'
+              repository: '$(DOCKER_USERNAME)/chancetek_devops'
               command: 'build'
               Dockerfile: '**/Dockerfile'
               tags: |
                 latest
                 $(Build.BuildId)
+                
           - task: Docker@2
             displayName: 'Log in to DockerHub'
             inputs:
@@ -39,8 +41,19 @@ stages:
         displayName: 'Run Trivy Image Scan'
         steps:
           - script: |
-              docker pull ichancetek/chancetek_devops
-              trivy image ichancetek/chancetek_devops
+              echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+              docker pull $(DOCKER_USERNAME)/chancetek_devops
+            displayName: 'Login to Docker and Pull Image'
+
+          - script: |
+              sudo apt-get update
+              sudo apt-get install -y wget
+              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.41.0_Linux-64bit.deb
+              sudo dpkg -i trivy_0.41.0_Linux-64bit.deb
+            displayName: 'Install Trivy'
+
+          - script: |
+              trivy image $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Docker Scan with Trivy'
 
   - stage: TestApp
@@ -65,6 +78,9 @@ stages:
           - task: Docker@2
             inputs:
               containerRegistry: 'DockerHubRegistry'
-              repository: 'ichancetek/chancetek_devops'
+              repository: '$(DOCKER_USERNAME)/chancetek_devops'
               command: 'push'
-              tags: 'latest'
+              tags: |
+                latest
+                $(Build.BuildId)
+
