@@ -40,7 +40,7 @@ stages:
         steps:
           - script: |
               docker pull ichancetek/chancetek_devops
-              trivy image ichancetek)/chancetek_devops
+              trivy image ichancetek/chancetek_devops
             displayName: 'Docker Scan with Trivy'
 
   - stage: TestApp
