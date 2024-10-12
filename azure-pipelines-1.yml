@@ -6,6 +6,9 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  DOCKER_USERNAME: $(DOCKER_USERNAME)
+  DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
 stages:
   - stage: BuildDocker
@@ -23,8 +26,7 @@ stages:
               tags: |
                 latest
                 $(Build.BuildId)
-                
-          # Push Docker image to Docker Hub
+
           - task: Docker@2
             displayName: 'Push Docker Image to Docker Hub'
             inputs:
@@ -37,36 +39,48 @@ stages:
 
   - stage: ScanImage
     displayName: 'Scan Docker Image with Trivy'
-    dependsOn: 
-      - BuildDocker  # Ensure BuildDocker stage is completed first
+    dependsOn: BuildDocker
     jobs:
       - job: Scan
         displayName: 'Run Trivy Image Scan'
         steps:
+          # Test if Docker is installed and working
+          - script: |
+              echo "Testing Docker installation..."
+              docker --version
+              if [ $? -ne 0 ]; then
+                echo "Docker is not installed. Exiting."
+                exit 1
+              fi
+            displayName: 'Test Docker Availability'
+
           # Log in to Docker Hub and pull the image for scanning
           - script: |
               echo "Logging in to Docker Hub..."
               echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
               docker pull $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Login to Docker and Pull Image'
-            continueOnError: false  # Fail if login or pull fails
 
           # Install Trivy for scanning
           - script: |
               echo "Installing Trivy..."
-              sudo apt-get update
+              sudo apt-get update -y
               sudo apt-get install -y wget
               wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.41.0_Linux-64bit.deb
               sudo dpkg -i trivy_0.41.0_Linux-64bit.deb
-              trivy --version  # Output the version of Trivy to confirm installation
-            displayName: 'Install Trivy'
+              trivy --version
+              if [ $? -ne 0 ]; then
+                echo "Trivy installation failed. Exiting."
+                exit 1
+              fi
+            displayName: 'Install and Verify Trivy'
 
           # Run Trivy scan
           - script: |
               echo "Running Trivy scan..."
               trivy image $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Docker Scan with Trivy'
-            continueOnError: false  # Fail if Trivy scan fails
+
 
 
 
