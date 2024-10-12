@@ -6,9 +6,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  DOCKER_USERNAME: $(DOCKER_USERNAME)  # DockerHub username stored in Variables section
-  DOCKER_PASSWORD: $(DOCKER_PASSWORD)  # DockerHub password stored as secret
+
 
 stages:
   - stage: BuildDocker
