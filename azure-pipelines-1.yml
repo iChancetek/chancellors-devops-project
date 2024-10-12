@@ -6,9 +6,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  DOCKER_USERNAME: $(DOCKER_USERNAME)
-  DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
 
 stages:
   - stage: BuildDocker
@@ -80,6 +78,21 @@ stages:
               echo "Running Trivy scan..."
               trivy image $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Docker Scan with Trivy'
+
+
+  # TestApp stage depends on ScanImage stage completion
+  - stage: TestApp
+    displayName: 'Run Selenium Tests'
+    dependsOn: 
+      - ScanImage  # Ensure ScanImage stage is completed first
+    jobs:
+      - job: Test
+        displayName: 'Run Selenium Tests'
+        steps:
+          - script: |
+              # Command to start the app or run Selenium tests
+              python -m pytest tests/
+            displayName: 'Run Selenium Tests'
 
 
 
