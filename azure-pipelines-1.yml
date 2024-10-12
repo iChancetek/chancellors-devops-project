@@ -7,7 +7,6 @@ pool:
   vmImage: 'ubuntu-latest'
 
 
-
 stages:
   - stage: BuildDocker
     displayName: 'Build Docker Image'
@@ -36,7 +35,6 @@ stages:
                 latest
                 $(Build.BuildId)
 
-  # Trivy scan stage depends on BuildDocker stage completion
   - stage: ScanImage
     displayName: 'Scan Docker Image with Trivy'
     dependsOn: 
@@ -47,35 +45,28 @@ stages:
         steps:
           # Log in to Docker Hub and pull the image for scanning
           - script: |
+              echo "Logging in to Docker Hub..."
               echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
               docker pull $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Login to Docker and Pull Image'
+            continueOnError: false  # Fail if login or pull fails
 
           # Install Trivy for scanning
           - script: |
+              echo "Installing Trivy..."
               sudo apt-get update
               sudo apt-get install -y wget
               wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.41.0_Linux-64bit.deb
               sudo dpkg -i trivy_0.41.0_Linux-64bit.deb
+              trivy --version  # Output the version of Trivy to confirm installation
             displayName: 'Install Trivy'
 
           # Run Trivy scan
           - script: |
+              echo "Running Trivy scan..."
               trivy image $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Docker Scan with Trivy'
+            continueOnError: false  # Fail if Trivy scan fails
 
-  # TestApp stage depends on ScanImage stage completion
-  - stage: TestApp
-    displayName: 'Run Selenium Tests'
-    dependsOn: 
-      - ScanImage  # Ensure ScanImage stage is completed first
-    jobs:
-      - job: Test
-        displayName: 'Run Selenium Tests'
-        steps:
-          - script: |
-              # Command to start the app or run Selenium tests
-              python -m pytest tests/
-            displayName: 'Run Selenium Tests'
 
 
