@@ -6,9 +6,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  DOCKER_USERNAME: $(DOCKER_USERNAME)  
-  DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
 
 stages:
   - stage: BuildDocker
