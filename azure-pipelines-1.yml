@@ -2,10 +2,9 @@ trigger:
   branches:
     include:
       - main
-
+      
 pool:
   vmImage: 'ubuntu-latest'
-
 
 
 stages:
@@ -29,54 +28,10 @@ stages:
             inputs:
               containerRegistry: 'DockerHubRegistry'
               command: 'login'
-          - script: |
-              echo "Docker build started" > /home/vsts/work/_temp/task_outputs/build_output.txt
-              docker build -t $(DOCKER_USERNAME)/chancetek_devops .
-              docker push $(DOCKER_USERNAME)/chancetek_devops
-              echo "Docker build and push completed" >> /home/vsts/work/_temp/task_outputs/build_output.txt
-            displayName: 'Docker Build and Push'
-
-  - stage: ScanImage
-    displayName: 'Scan Docker Image with Trivy'
-    dependsOn: BuildDocker
-    jobs:
-      - job: Scan
-        displayName: 'Run Trivy Image Scan'
-        steps:
-          - script: |
-              echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-              docker pull $(DOCKER_USERNAME)/chancetek_devops
-            displayName: 'Login to Docker and Pull Image'
-          - script: |
-              echo "Trivy installation started" > /home/vsts/work/_temp/task_outputs/trivy_output.txt
-              sudo apt-get update
-              sudo apt-get install -y wget
-              wget https://github.com/aquasecurity/trivy/releases/download/v0.56.2/trivy_0.56.2_Linux-64bit.deb
-              sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
-              echo "Trivy installation completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-            displayName: 'Install Trivy'
-          - script: |
-              echo "Starting Trivy scan" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-              trivy image $(DOCKER_USERNAME)/chancetek_devops
-              echo "Trivy scan completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-            displayName: 'Docker Scan with Trivy'
-
-  - stage: TestApp
-    displayName: 'Run Selenium Tests'
-    dependsOn: ScanImage
-    jobs:
-      - job: Test
-        displayName: 'Run Selenium Tests'
-        steps:
-          - script: |
-              echo "Running Selenium tests" > /home/vsts/work/_temp/task_outputs/test_output.txt
-              python -m pytest tests/
-              echo "Selenium tests completed" >> /home/vsts/work/_temp/task_outputs/test_output.txt
-            displayName: 'Run Selenium tests'
 
   - stage: PushImage
     displayName: 'Push Docker Image to DockerHub'
-    dependsOn: TestApp
+    dependsOn: BuildDocker
     jobs:
       - job: Push
         displayName: 'Push Docker Image'
@@ -87,7 +42,38 @@ stages:
               repository: '$(DOCKER_USERNAME)/chancetek_devops'
               command: 'push'
               tags: 'latest'
+
+  - stage: ScanImage
+    displayName: 'Scan Docker Image with Trivy'
+    dependsOn: PushImage
+    jobs:
+      - job: Scan
+        displayName: 'Run Trivy Image Scan'
+        steps:
           - script: |
-              echo "Docker image push completed" > /home/vsts/work/_temp/task_outputs/push_output.txt
-            displayName: 'Log Docker Push Completion'
+              sudo apt-get update
+              sudo apt-get install -y wget
+              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
+              sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
+              sudo chmod +x /usr/local/bin/trivy
+              export PATH=$PATH:/usr/local/bin
+              trivy --version || echo "Trivy installation failed"
+            displayName: 'Install and Verify Trivy'
+
+          - script: |
+              trivy image $(DOCKER_USERNAME)/chancetek_devops
+            displayName: 'Docker Scan with Trivy'
+
+  - stage: TestApp
+    displayName: 'Run Selenium Tests'
+    dependsOn: ScanImage
+    jobs:
+      - job: Test
+        displayName: 'Run Selenium Tests'
+        steps:
+          - script: |
+              # Here you would put the command to start your app or run Selenium tests
+              python -m pytest tests/
+            displayName: 'Run Selenium tests'
+
 
