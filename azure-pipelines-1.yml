@@ -61,17 +61,12 @@ stages:
 
           # Install Trivy for scanning
           - script: |
-              echo "Installing Trivy..."
-              sudo apt-get update -y
-              sudo apt-get install -y wget
-              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.41.0_Linux-64bit.deb
-              sudo dpkg -i trivy_0.41.0_Linux-64bit.deb
-              trivy --version
-              if [ $? -ne 0 ]; then
-                echo "Trivy installation failed. Exiting."
-                exit 1
-              fi
-            displayName: 'Install and Verify Trivy'
+               sudo apt-get update
+               sudo apt-get install -y wget
+               wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
+               sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
+               displayName: 'Install Trivy'
+
 
           # Run Trivy scan
           - script: |
@@ -92,8 +87,3 @@ stages:
           - script: |
               # Command to start the app or run Selenium tests
               python -m pytest tests/
-            displayName: 'Run Selenium Tests'
-
-
-
-
