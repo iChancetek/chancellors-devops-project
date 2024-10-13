@@ -6,7 +6,9 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-
+variables:
+  DOCKER_USERNAME: $(DOCKER_USERNAME)  
+  DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
 stages:
   - stage: BuildDocker
@@ -24,16 +26,17 @@ stages:
               tags: |
                 latest
                 $(Build.BuildId)
-
           - task: Docker@2
-            displayName: 'Push Docker Image to Docker Hub'
+            displayName: 'Log in to DockerHub'
             inputs:
               containerRegistry: 'DockerHubRegistry'
-              repository: '$(DOCKER_USERNAME)/chancetek_devops'
-              command: 'push'
-              tags: |
-                latest
-                $(Build.BuildId)
+              command: 'login'
+          - script: |
+              echo "Docker build started" > /home/vsts/work/_temp/task_outputs/build_output.txt
+              docker build -t $(DOCKER_USERNAME)/chancetek_devops .
+              docker push $(DOCKER_USERNAME)/chancetek_devops
+              echo "Docker build and push completed" >> /home/vsts/work/_temp/task_outputs/build_output.txt
+            displayName: 'Docker Build and Push'
 
   - stage: ScanImage
     displayName: 'Scan Docker Image with Trivy'
@@ -42,48 +45,50 @@ stages:
       - job: Scan
         displayName: 'Run Trivy Image Scan'
         steps:
-          # Test if Docker is installed and working
           - script: |
-              echo "Testing Docker installation..."
-              docker --version
-              if [ $? -ne 0 ]; then
-                echo "Docker is not installed. Exiting."
-                exit 1
-              fi
-            displayName: 'Test Docker Availability'
-
-          # Log in to Docker Hub and pull the image for scanning
-          - script: |
-              echo "Logging in to Docker Hub..."
               echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
               docker pull $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Login to Docker and Pull Image'
-
-          # Install Trivy for scanning
           - script: |
-               sudo apt-get update
-               sudo apt-get install -y wget
-               wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
-               sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
-               displayName: 'Install Trivy'
-
-
-          # Run Trivy scan
+              echo "Trivy installation started" > /home/vsts/work/_temp/task_outputs/trivy_output.txt
+              sudo apt-get update
+              sudo apt-get install -y wget
+              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
+              sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
+              echo "Trivy installation completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
+            displayName: 'Install Trivy'
           - script: |
-              echo "Running Trivy scan..."
+              echo "Starting Trivy scan" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
               trivy image $(DOCKER_USERNAME)/chancetek_devops
+              echo "Trivy scan completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
             displayName: 'Docker Scan with Trivy'
 
-
-  # TestApp stage depends on ScanImage stage completion
   - stage: TestApp
     displayName: 'Run Selenium Tests'
-    dependsOn: 
-      - ScanImage  # Ensure ScanImage stage is completed first
+    dependsOn: ScanImage
     jobs:
       - job: Test
         displayName: 'Run Selenium Tests'
         steps:
           - script: |
-              # Command to start the app or run Selenium tests
+              echo "Running Selenium tests" > /home/vsts/work/_temp/task_outputs/test_output.txt
               python -m pytest tests/
+              echo "Selenium tests completed" >> /home/vsts/work/_temp/task_outputs/test_output.txt
+            displayName: 'Run Selenium tests'
+
+  - stage: PushImage
+    displayName: 'Push Docker Image to DockerHub'
+    dependsOn: TestApp
+    jobs:
+      - job: Push
+        displayName: 'Push Docker Image'
+        steps:
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'DockerHubRegistry'
+              repository: '$(DOCKER_USERNAME)/chancetek_devops'
+              command: 'push'
+              tags: 'latest'
+          - script: |
+              echo "Docker image push completed" > /home/vsts/work/_temp/task_outputs/push_output.txt
+            displayName: 'Log Docker Push Completion'
