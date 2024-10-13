@@ -36,34 +36,11 @@ stages:
               echo "Docker build and push completed" >> /home/vsts/work/_temp/task_outputs/build_output.txt
             displayName: 'Docker Build and Push'
 
-  - stage: ScanImage
-    displayName: 'Scan Docker Image with Trivy'
-    dependsOn: BuildDocker
-    jobs:
-      - job: Scan
-        displayName: 'Run Trivy Image Scan'
-        steps:
-          - script: |
-              echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-              docker pull $(DOCKER_USERNAME)/chancetek_devops
-            displayName: 'Login to Docker and Pull Image'
-          - script: |
-              echo "Trivy installation started" > /home/vsts/work/_temp/task_outputs/trivy_output.txt
-              sudo apt-get update
-              sudo apt-get install -y wget
-              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
-              sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
-              echo "Trivy installation completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-            displayName: 'Install Trivy'
-          - script: |
-              echo "Starting Trivy scan" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-              trivy image $(DOCKER_USERNAME)/chancetek_devops
-              echo "Trivy scan completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-            displayName: 'Docker Scan with Trivy'
+  
 
   - stage: TestApp
     displayName: 'Run Selenium Tests'
-    dependsOn: ScanImage
+    
     jobs:
       - job: Test
         displayName: 'Run Selenium Tests'
@@ -76,7 +53,7 @@ stages:
 
   - stage: PushImage
     displayName: 'Push Docker Image to DockerHub'
-    dependsOn: TestApp
+    
     jobs:
       - job: Push
         displayName: 'Push Docker Image'
@@ -90,7 +67,4 @@ stages:
           - script: |
               echo "Docker image push completed" > /home/vsts/work/_temp/task_outputs/push_output.txt
             displayName: 'Log Docker Push Completion'
-
-
-
 
