@@ -51,7 +51,7 @@ stages:
               echo "Trivy installation started" > /home/vsts/work/_temp/task_outputs/trivy_output.txt
               sudo apt-get update
               sudo apt-get install -y wget
-              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
+              wget https://github.com/aquasecurity/trivy/releases/download/v0.56.2/trivy_0.56.2_Linux-64bit.deb
               sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
               echo "Trivy installation completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
             displayName: 'Install Trivy'
@@ -90,3 +90,4 @@ stages:
           - script: |
               echo "Docker image push completed" > /home/vsts/work/_temp/task_outputs/push_output.txt
             displayName: 'Log Docker Push Completion'
+
