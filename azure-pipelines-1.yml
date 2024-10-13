@@ -44,6 +44,10 @@ stages:
       - job: Test
         displayName: 'Run Selenium Tests'
         steps:
+          - checkout: self
+          - script: |
+              ls -R
+            displayName: 'List workspace contents'
           - script: |
               pip install pytest
             displayName: 'Install pytest'
@@ -51,6 +55,7 @@ stages:
               mkdir -p /home/vsts/work/_temp/task_outputs
               python -m pytest tests/ > /home/vsts/work/_temp/task_outputs/test_output.txt
             displayName: 'Run Selenium tests'
+
 
   - stage: PushImage
     displayName: 'Push Docker Image to DockerHub'
