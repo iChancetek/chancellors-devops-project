@@ -36,7 +36,6 @@ stages:
               echo "Docker build and push completed" >> /home/vsts/work/_temp/task_outputs/build_output.txt
             displayName: 'Docker Build and Push'
 
-  
   - stage: TestApp
     displayName: 'Run Selenium Tests'
     
@@ -57,14 +56,15 @@ stages:
             displayName: 'Install pytest and Selenium'
 
           - script: |
-              if [ -d "tests/" ]; then
+              if [ -d "tests" ]; then
                 mkdir -p /home/vsts/work/_temp/task_outputs
-                python -m pytest tests/ > /home/vsts/work/_temp/task_outputs/test_output.txt
+                python -m pytest tests > /home/vsts/work/_temp/task_outputs/test_output.txt
               else
                 echo "Tests directory not found!"
                 exit 1
               fi
             displayName: 'Run Selenium tests'
+
 
 
 
