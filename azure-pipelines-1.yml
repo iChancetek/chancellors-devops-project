@@ -44,17 +44,28 @@ stages:
       - job: Test
         displayName: 'Run Selenium Tests'
         steps:
-          - checkout: self
+          - checkout: self  # Ensure the repository code is checked out
+          
           - script: |
+              echo "Listing workspace contents:"
               ls -R
             displayName: 'List workspace contents'
+          
           - script: |
-              pip install pytest
-            displayName: 'Install pytest'
+              python -m pip install --upgrade pip
+              pip install pytest selenium  # Install necessary packages
+            displayName: 'Install pytest and Selenium'
+
           - script: |
-              mkdir -p /home/vsts/work/_temp/task_outputs
-              python -m pytest tests/ > /home/vsts/work/_temp/task_outputs/test_output.txt
+              if [ -d "tests/" ]; then
+                mkdir -p /home/vsts/work/_temp/task_outputs
+                python -m pytest tests/ > /home/vsts/work/_temp/task_outputs/test_output.txt
+              else
+                echo "Tests directory not found!"
+                exit 1
+              fi
             displayName: 'Run Selenium tests'
+
 
 
   - stage: PushImage
