@@ -37,7 +37,6 @@ stages:
             displayName: 'Docker Build and Push'
 
   
-
   - stage: TestApp
     displayName: 'Run Selenium Tests'
     
@@ -46,9 +45,11 @@ stages:
         displayName: 'Run Selenium Tests'
         steps:
           - script: |
-              echo "Running Selenium tests" > /home/vsts/work/_temp/task_outputs/test_output.txt
-              python -m pytest tests/
-              echo "Selenium tests completed" >> /home/vsts/work/_temp/task_outputs/test_output.txt
+              pip install pytest
+            displayName: 'Install pytest'
+          - script: |
+              mkdir -p /home/vsts/work/_temp/task_outputs
+              python -m pytest tests/ > /home/vsts/work/_temp/task_outputs/test_output.txt
             displayName: 'Run Selenium tests'
 
   - stage: PushImage
