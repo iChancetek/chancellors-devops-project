@@ -48,13 +48,15 @@ stages:
               docker pull $(DOCKER_USERNAME)/chancetek_devops
             displayName: 'Login to Docker and Pull Image'
           - script: |
-              echo "Trivy installation started" > /home/vsts/work/_temp/task_outputs/trivy_output.txt
               sudo apt-get update
-              sudo apt-get install -y wget
-              wget https://github.com/aquasecurity/trivy/releases/download/v0.56.2/trivy_0.56.2_Linux-64bit.deb
-              sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
-              echo "Trivy installation completed" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
-            displayName: 'Install Trivy'
+              sudo apt-get install -y wget curl
+              wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')_Linux-64bit.deb
+              sudo dpkg -i trivy_*.deb
+              sudo chmod +x /usr/local/bin/trivy
+              export PATH=$PATH:/usr/local/bin
+              trivy --version || echo "Trivy installation failed"
+            displayName: 'Install and Verify Trivy'
+
           - script: |
               echo "Starting Trivy scan" >> /home/vsts/work/_temp/task_outputs/trivy_output.txt
               trivy image $(DOCKER_USERNAME)/chancetek_devops
